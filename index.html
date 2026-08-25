@@ -153,8 +153,16 @@
       <img src="VE_MENU.png" alt="Lunch Menu" onerror="this.dataset.broken='true';">
     </div>
 
+    <div class="slide" id="slide-breakfast">
+      <img src="VE_BREAKFAST.png" alt="Breakfast Menu" onerror="this.dataset.broken='true';">
+    </div>
+
     <div class="slide" id="slide-menu-next">
       <img src="VE_MENU9.png" alt="Next Month's Lunch Menu" onerror="this.dataset.broken='true';">
+    </div>
+
+    <div class="slide" id="slide-breakfast-next">
+      <img src="VE_BREAKFAST9.png" alt="Next Month's Breakfast Menu" onerror="this.dataset.broken='true';">
     </div>
 
     <div class="slide" id="slide-welcome">
@@ -206,7 +214,9 @@
     const slides = [
       { el: document.getElementById('slide-calendar'), duration: CALENDAR_DURATION },
       ...(showOldMenu ? [{ el: document.getElementById('slide-menu'), duration: MENU_DURATION }] : []),
+      ...(showOldMenu ? [{ el: document.getElementById('slide-breakfast'), duration: MENU_DURATION }] : []),
       ...(showNextMenu ? [{ el: document.getElementById('slide-menu-next'), duration: MENU_DURATION }] : []),
+      ...(showNextMenu ? [{ el: document.getElementById('slide-breakfast-next'), duration: MENU_DURATION }] : []),
       { el: document.getElementById('slide-welcome'), duration: WELCOME_DURATION },
       { el: document.getElementById('slide-announcements'), duration: ANNOUNCEMENTS_DURATION }
     ];
