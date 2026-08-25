@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Enarson Elementary TV</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: #000000;
+    overflow: hidden;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  .slides-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: calc(100% - 90px);
+  }
+
+  .slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+    background: #000000;
+  }
+
+  .slide.active {
+    opacity: 1;
+    z-index: 1;
+  }
+
+  iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  /* ---- Welcome slide ---- */
+  #slide-welcome {
+    flex-direction: column;
+    background: #000000;
+    gap: 3vh;
+  }
+
+  .welcome-title {
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 6vh;
+    letter-spacing: 2px;
+    text-align: center;
+    text-transform: uppercase;
+    font-family: Arial, Helvetica, sans-serif;
+    text-shadow: 0 0 20px rgba(255, 204, 0, 0.5);
+  }
+
+  .welcome-title .accent {
+    color: #ffcc00;
+  }
+
+  #slide-welcome img {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    object-fit: fill;
+  }
+
+ /* ---- Bottom scrolling ticker ---- */
+  .ticker-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 90px;
+    background: #000000;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+    box-sizing: border-box;
+    border-top: 3px solid #1fbfb0;
+  }
+
+  .ticker-label {
+    flex: 0 0 auto;
+    background: #1fbfb0;
+    color: #000000;
+    font-weight: bold;
+    font-size: 30px;
+    padding: 0 18px 0 30px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    z-index: 2;
+  }
+
+  .ticker-track {
+    flex: 1 1 auto;
+    overflow: hidden;
+    position: relative;
+    height: 100%;
+  }
+
+  .ticker-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    font-size: 33px;
+    padding-right: 100px;
+    animation: scroll-left linear infinite;
+    /* animation-duration is set dynamically in JS based on text length */
+  }
+
+  @keyframes scroll-left {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+</style>
+</head>
+<body>
+
+  <div class="slides-area">
+    <div class="slide active" id="slide-calendar">
+      <iframe
+        src="https://www.gobound.com/widgets/67aa3cf8b46247fc8947"
+        allowtransparency="true">
+      </iframe>
+    </div>
+
+    <div class="slide" id="slide-menu">
+      <img src="VE_MENU.png" alt="Lunch Menu" onerror="this.dataset.broken='true';">
+    </div>
+
+    <div class="slide" id="slide-menu-next">
+      <img src="VE_MENU9.png" alt="Next Month's Lunch Menu" onerror="this.dataset.broken='true';">
+    </div>
+
+    <div class="slide" id="slide-welcome">
+      <img src="Welcome_Enarson.png" alt="Enarson Elementary Logo" onerror="this.dataset.broken='true';">
+    </div>
+
+    <div class="slide" id="slide-announcements">
+      <!--
+        Secretary's published Google Slides deck (3 slides, 10 sec each = 30 sec loop).
+        If she republishes with a different slide count or delay, update the
+        src below AND the ANNOUNCEMENTS_DURATION constant further down to match.
+      -->
+      <iframe
+        src="https://docs.google.com/presentation/d/e/2PACX-1vSGiYSv0pK1maAsTXPf3_q2hUWXIEjWjHdvqj-kMUuJOhPuLt_L9mxU5WuuePILBDn1VqRU_tx49zgc/pubembed?start=true&loop=true&delayms=10000"
+        allowfullscreen="true">
+      </iframe>
+    </div>
+  </div>
+
+  <div class="ticker-bar">
+    <div class="ticker-label">NEWS</div>
+    <div class="ticker-track">
+      <div class="ticker-content" id="ticker-content">Loading bulletin&hellip;</div>
+    </div>
+  </div>
+
+  <div class="ticker-bar">
+    <div class="ticker-label">NEWS</div>
+    <div class="ticker-track">
+      <div class="ticker-content" id="ticker-content">Loading bulletin&hellip;</div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================
+    // SLIDE ROTATION SETTINGS
+    // =========================================================
+    const CALENDAR_DURATION = 10000;
+    const MENU_DURATION = 10000;
+    const WELCOME_DURATION = 10000;
+    const ANNOUNCEMENTS_DURATION = 30000; // her deck: 3 slides x 10 sec each
+
+    // ---- Monthly menu swap ----
+    // VE_MENU.png is the current (August) menu; VE_MENU9.png is next
+    // month's (September). VE_MENU9.png joins the rotation starting on
+    // its start date, then VE_MENU.png drops out on its retire date --
+    // both happen automatically (page auto-reloads hourly), no manual
+    // edit needed on either day. Just rename files and update these two
+    // lines each month going forward.
+    const MENU_NEXT_START_DATE = new Date('2026-08-31T00:00:00');
+    const MENU_RETIRE_DATE = new Date('2026-09-01T00:00:00');
+    const now = new Date();
+    const showOldMenu = now < MENU_RETIRE_DATE;
+    const showNextMenu = now >= MENU_NEXT_START_DATE;
+
+    const slides = [
+      { el: document.getElementById('slide-calendar'), duration: CALENDAR_DURATION },
+      ...(showOldMenu ? [{ el: document.getElementById('slide-menu'), duration: MENU_DURATION }] : []),
+      ...(showNextMenu ? [{ el: document.getElementById('slide-menu-next'), duration: MENU_DURATION }] : []),
+      { el: document.getElementById('slide-welcome'), duration: WELCOME_DURATION },
+      { el: document.getElementById('slide-announcements'), duration: ANNOUNCEMENTS_DURATION }
+    ];
+
+    let current = 0;
+
+    function slideIsBroken(slideEl) {
+      const img = slideEl.querySelector('img');
+      return img && img.dataset.broken === 'true';
+    }
+
+    // Base embed URL for the secretary's Slides deck, kept separately so
+    // we can re-append a cache-busting param each time we refresh it.
+    const ANNOUNCEMENTS_BASE_SRC = "https://docs.google.com/presentation/d/e/2PACX-1vSGiYSv0pK1maAsTXPf3_q2hUWXIEjWjHdvqj-kMUuJOhPuLt_L9mxU5WuuePILBDn1VqRU_tx49zgc/pubembed?start=true&loop=true&delayms=10000";
+
+    function refreshAnnouncementsFrame() {
+      const frame = document.querySelector('#slide-announcements iframe');
+      if (frame) {
+        frame.src = ANNOUNCEMENTS_BASE_SRC + "&cb=" + Date.now();
+      }
+    }
+
+    function showSlide(index) {
+      slides.forEach((s, i) => {
+        s.el.classList.toggle('active', i === index);
+      });
+    }
+
+    // Preload lead time: the announcements iframe gets refreshed this many
+    // milliseconds BEFORE its slide is shown, so it's already fresh and
+    // sitting on slide 1 (still hidden) the instant it becomes visible.
+    const ANNOUNCEMENTS_PRELOAD_MS = 1000;
+
+    function nextSlide() {
+      let attempts = 0;
+      do {
+        current = (current + 1) % slides.length;
+        attempts++;
+      } while (slideIsBroken(slides[current].el) && attempts < slides.length);
+
+      showSlide(current);
+
+      // If the slide AFTER this one is the announcements slide, schedule
+      // its preload-refresh to fire 1 second before it's due to appear.
+      const upcomingIndex = (current + 1) % slides.length;
+      if (slides[upcomingIndex].el.id === 'slide-announcements') {
+        const leadTime = slides[current].duration - ANNOUNCEMENTS_PRELOAD_MS;
+        setTimeout(refreshAnnouncementsFrame, Math.max(0, leadTime));
+      }
+
+      setTimeout(nextSlide, slides[current].duration);
+    }
+
+    setTimeout(nextSlide, slides[current].duration);
+
+    // =========================================================
+    // BOTTOM TICKER: pulls text from the published "Daily Bulletin"
+    // Google Doc. The doc says it auto-updates every 5 minutes, so
+    // this re-fetches on the same schedule.
+    //
+    // r.jina.ai converts the page into clean, pre-stripped plain
+    // text (no CSS/script code to leak through), and also handles
+    // the cross-origin permission issue for us.
+    // =========================================================
+
+    const DOC_URL = "https://docs.google.com/document/d/e/2PACX-1vRp_dkseO_baydiLxmcXV1eCO4IIlVUr03JeMbVh1mppP779rD5oqSizEBfkhjs1WugmIPubXPLUglf/pub";
+    const REFRESH_MS = 5 * 60 * 1000; // 5 minutes, matches the doc's own update cadence
+
+    // r.jina.ai caches its own responses per-URL for a few minutes. Appending
+    // a changing query param each time (same trick used above for the
+    // announcements iframe) makes every request a unique URL, so Jina can't
+    // serve a stale cached copy back to us.
+    function buildProxyUrl() {
+      return "https://r.jina.ai/" + DOC_URL + "?cb=" + Date.now();
+    }
+
+    // Fallback text, shown only if the live fetch fails.
+    const FALLBACK_TEXT = "Welcome to Enarson Elementary! Check back soon for daily announcements.";
+
+    const tickerEl = document.getElementById('ticker-content');
+
+    function setTickerText(text) {
+      // Duplicate the text back-to-back (with a gap) so the scroll can
+      // loop seamlessly at -50% -- see the @keyframes above.
+      const gap = '          '; // spacing between the end of one loop and the start of the next
+      tickerEl.textContent = text + gap + text + gap;
+      // Speed: roughly 90 pixels per second, scaled to a single copy's length
+      const estimatedWidth = text.length * 13; // rough px estimate
+      const duration = Math.max(20, estimatedWidth / 180);
+      tickerEl.style.animation = 'none';
+      // force reflow so the animation restarts cleanly
+      void tickerEl.offsetWidth;
+      tickerEl.style.animation = `scroll-left ${duration}s linear infinite`;
+    }
+
+    function cleanExtractedText(rawText) {
+      return rawText
+        // strip any stray HTML tags and CSS-looking rule blocks that
+        // could slip through as literal text
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\.[\w-]+\{[^}]*\}/g, ' ')
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line =>
+          line.length > 0 &&
+          !line.startsWith('Title:') &&
+          !line.startsWith('URL Source:') &&
+          !line.startsWith('Markdown Content:') &&
+          !line.startsWith('Warning:') &&
+          !line.startsWith('[') &&
+          !line.includes('Updated automatically every') &&
+          line !== 'Published using Google Docs' &&
+          line !== 'Report abuse' &&
+          line !== 'Learn more'
+        )
+        .join('   •   ')
+        // collapse any repeated whitespace left over from cleanup
+        .replace(/\s{2,}/g, ' ');
+    }
+
+    function fetchBulletin() {
+      fetch(buildProxyUrl())
+        .then(res => {
+          if (!res.ok) throw new Error('Bad response');
+          return res.text();
+        })
+        .then(rawText => {
+          const cleaned = cleanExtractedText(rawText);
+          if (cleaned && cleaned.length > 20) {
+            setTickerText(cleaned);
+          } else {
+            throw new Error('Empty content');
+          }
+        })
+        .catch(err => {
+          console.warn('Bulletin fetch failed, using fallback text.', err);
+          setTickerText(FALLBACK_TEXT);
+        });
+    }
+
+    fetchBulletin();
+    setInterval(fetchBulletin, REFRESH_MS);
+
+    // =========================================================
+    // AUTO-REFRESH: reloads the whole page on a schedule so any
+    // new deploy (updated index.html, changed image, etc.) gets
+    // picked up automatically -- no need to physically visit the
+    // Chromebook. Adjust the hours below to whatever cadence makes
+    // sense; a smaller number means changes show up faster but the
+    // screen blips/reconnects more often.
+    // =========================================================
+    const AUTO_RELOAD_HOURS = 1;
+    setTimeout(() => {
+      location.reload(true); // true forces a fresh fetch, bypassing cache
+    }, AUTO_RELOAD_HOURS * 60 * 60 * 1000);
+  </script>
+
+</body>
+</html>
