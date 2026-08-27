@@ -137,6 +137,35 @@
     from { transform: translateX(0); }
     to   { transform: translateX(-50%); }
   }
+
+  /* ---- Photo collage slides ---- */
+  #slide-photos-1,
+  #slide-photos-2,
+  #slide-photos-3,
+  #slide-photos-4 {
+    background: #0a0a0a url("background.png") center / cover no-repeat;
+  }
+
+  .photo-collage {
+    position: relative;
+    width: 100%;
+    height: calc(100% - 90px);
+  }
+
+  .photo-tile {
+    position: absolute;
+    background: #000000;
+    border: 6px solid #ffffff;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 1.4s ease-in-out, transform 1.4s ease-in-out;
+  }
+
+  .photo-tile.visible {
+    opacity: 1;
+  }
 </style>
 </head>
 <body>
@@ -180,6 +209,22 @@
         allowfullscreen="true">
       </iframe>
     </div>
+
+    <div class="slide" id="slide-photos-1" data-empty="true">
+      <div class="photo-collage" id="photo-collage-1"></div>
+    </div>
+
+    <div class="slide" id="slide-photos-2" data-empty="true">
+      <div class="photo-collage" id="photo-collage-2"></div>
+    </div>
+
+    <div class="slide" id="slide-photos-3" data-empty="true">
+      <div class="photo-collage" id="photo-collage-3"></div>
+    </div>
+
+    <div class="slide" id="slide-photos-4" data-empty="true">
+      <div class="photo-collage" id="photo-collage-4"></div>
+    </div>
   </div>
 
   <div class="ticker-bar">
@@ -197,6 +242,8 @@
     const MENU_DURATION = 10000;
     const WELCOME_DURATION = 10000;
     const ANNOUNCEMENTS_DURATION = 29000; // her deck: 3 slides x 10 sec each
+    const PHOTOS_DURATION = 12000; // each of the 4 photo slides shows its 3 photos for this long
+    const PHOTO_SLIDE_IDS = ['slide-photos-1', 'slide-photos-2', 'slide-photos-3', 'slide-photos-4'];
 
     // ---- Monthly menu swap ----
     // VE_MENU.png is the current (August) menu; VE_MENU9.png is next
@@ -218,14 +265,22 @@
       ...(showNextMenu ? [{ el: document.getElementById('slide-menu-next'), duration: MENU_DURATION }] : []),
       ...(showNextMenu ? [{ el: document.getElementById('slide-breakfast-next'), duration: MENU_DURATION }] : []),
       { el: document.getElementById('slide-welcome'), duration: WELCOME_DURATION },
-      { el: document.getElementById('slide-announcements'), duration: ANNOUNCEMENTS_DURATION }
+      { el: document.getElementById('slide-announcements'), duration: ANNOUNCEMENTS_DURATION },
+      { el: document.getElementById('slide-photos-1'), duration: PHOTOS_DURATION },
+      { el: document.getElementById('slide-photos-2'), duration: PHOTOS_DURATION },
+      { el: document.getElementById('slide-photos-3'), duration: PHOTOS_DURATION },
+      { el: document.getElementById('slide-photos-4'), duration: PHOTOS_DURATION }
     ];
 
     let current = 0;
 
     function slideIsBroken(slideEl) {
       const img = slideEl.querySelector('img');
-      return img && img.dataset.broken === 'true';
+      if (img && img.dataset.broken === 'true') return true;
+      if (slideEl.id.indexOf('slide-photos-') === 0) {
+        return slideEl.dataset.empty === 'true';
+      }
+      return false;
     }
 
     // Base embed URL for the secretary's Slides deck, kept separately so
@@ -256,6 +311,15 @@
         current = (current + 1) % slides.length;
         attempts++;
       } while (slideIsBroken(slides[current].el) && attempts < slides.length);
+
+      // Re-roll a photo slide's 3 photos right before it's shown again,
+      // so each pass through the rotation shows a fresh set (see
+      // refreshPhotoSlide, defined further down with the rest of the
+      // photo collage logic).
+      const currentId = slides[current].el.id;
+      if (typeof refreshPhotoSlide === 'function' && PHOTO_SLIDE_IDS.indexOf(currentId) !== -1) {
+        refreshPhotoSlide(currentId);
+      }
 
       showSlide(current);
 
@@ -359,6 +423,151 @@
 
     fetchBulletin();
     setInterval(fetchBulletin, REFRESH_MS);
+
+    // =========================================================
+    // PHOTO COLLAGE: teachers drop event photos into a shared Google
+    // Drive folder ("anyone with the link can view"). We pull the
+    // folder's file list through r.jina.ai (same cross-origin trick
+    // used for the ticker above -- Drive's own folder page blocks
+    // direct browser fetches, but jina proxies it and echoes back a
+    // permissive CORS header). Drive embeds a big JSON blob of every
+    // file in the folder as window['_DRIVE_ivd'] on the page; we pull
+    // that out, keep only images, and use each file's ID to build a
+    // public thumbnail URL. New photos show up automatically because
+    // the whole page reloads hourly (see AUTO-REFRESH below).
+    //
+    // To point this at a different folder, just change PHOTOS_FOLDER_ID.
+    // =========================================================
+    const PHOTOS_FOLDER_ID = '1xaEHvvJ8ZGW9gn4MXLLerarg9t-wp9-Y';
+    const PHOTOS_TILE_COUNT = 3; // photos shown per photo slide
+
+    function photoUrl(fileId) {
+      return `https://lh3.googleusercontent.com/d/${fileId}=s1000`;
+    }
+
+    // Drive's page embeds the folder's file listing as a hand-escaped JS
+    // string (\x22 for quotes, \/ for slashes, \uXXXX for unicode) rather
+    // than a normal JSON string literal, so it needs its own unescaper
+    // instead of a plain JSON.parse-of-a-string trick.
+    function unescapeDriveBlob(s) {
+      return s.replace(/\\x([0-9a-fA-F]{2})|\\u([0-9a-fA-F]{4})|\\\\|\\\//g, (m, hex, uni) => {
+        if (hex) return String.fromCharCode(parseInt(hex, 16));
+        if (uni) return String.fromCharCode(parseInt(uni, 16));
+        if (m === '\\\\') return '\\';
+        if (m === '\\/') return '/';
+        return m;
+      });
+    }
+
+    function fetchPhotoIds() {
+      const folderPageUrl = `https://drive.google.com/drive/folders/${PHOTOS_FOLDER_ID}`;
+      const proxyUrl = `https://r.jina.ai/${folderPageUrl}?cb=${Date.now()}`;
+      return fetch(proxyUrl, { headers: { 'X-Return-Format': 'html' } })
+        .then(res => {
+          if (!res.ok) throw new Error('Bad response fetching Drive folder');
+          return res.text();
+        })
+        .then(html => {
+          const match = html.match(/_DRIVE_ivd'\]\s*=\s*'((?:[^'\\]|\\.)*)'/);
+          if (!match) throw new Error('Could not locate Drive file listing in page');
+          const jsonText = unescapeDriveBlob(match[1]);
+          const parsed = JSON.parse(jsonText);
+          const files = parsed[0] || []; // wrapper array holds one array of file entries
+          return files
+            .filter(f => Array.isArray(f) && typeof f[3] === 'string' && f[3].indexOf('image/') === 0)
+            .map(f => f[0]);
+        });
+    }
+
+    // There are 4 photo slides, each showing a STATIC set of 3 photos
+    // (no swapping while a slide is visible). All 4 slides draw from
+    // one shared "don't repeat" queue, so a full loop through the
+    // rotation shows 12 unique photos, and the NEXT loop shows the
+    // next 12 -- only repeating once the whole ~40-photo pool has been
+    // shown once. Each slide's photos are re-rolled from the queue
+    // right before that slide becomes active again, using the same
+    // preload-lead-time pattern as the announcements iframe refresh.
+    // (PHOTO_SLIDE_IDS is declared up in SLIDE ROTATION SETTINGS.)
+    let allPhotoIds = [];
+    let photoQueue = [];
+
+    function shuffledIndices(ids) {
+      const arr = ids.map((_, i) => i);
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // Draws `count` unique photo indices from the shared queue, in
+    // order, only reshuffling a fresh queue once the current one is
+    // exhausted -- guarantees every photo appears once before any repeat.
+    function drawPhotoIndices(count) {
+      const result = [];
+      while (result.length < count) {
+        if (photoQueue.length === 0) photoQueue = shuffledIndices(allPhotoIds);
+        result.push(photoQueue.shift());
+      }
+      return result;
+    }
+
+    function renderPhotoSlide(slideId, photoIndices) {
+      const slideEl = document.getElementById(slideId);
+      const container = slideEl.querySelector('.photo-collage');
+      container.innerHTML = '';
+
+      if (!photoIndices || photoIndices.length === 0) {
+        slideEl.dataset.empty = 'true';
+        return;
+      }
+      slideEl.dataset.empty = 'false';
+
+      const tileCount = photoIndices.length;
+      const COLUMN_WIDTH = 100 / tileCount;
+
+      photoIndices.forEach((photoIndex, columnIndex) => {
+        const tile = document.createElement('div');
+        tile.className = 'photo-tile';
+
+        const w = COLUMN_WIDTH * (0.8 + Math.random() * 0.16); // vw, mostly fills the column
+        const h = 55 + Math.random() * 22; // % of the photo area's own height
+        const columnLeft = COLUMN_WIDTH * columnIndex;
+        const maxJitter = COLUMN_WIDTH - w;
+        const left = columnLeft + Math.random() * Math.max(maxJitter, 0);
+        const maxTop = 100 - h;
+        const top = Math.random() * Math.max(maxTop, 0);
+        const rotate = (Math.random() * 6 - 3).toFixed(1);
+        tile.style.width = w + 'vw';
+        tile.style.height = h + '%';
+        tile.style.left = left + 'vw';
+        tile.style.top = top + '%';
+        tile.style.zIndex = String(1 + columnIndex);
+        tile.style.transform = `rotate(${rotate}deg)`;
+        tile.style.backgroundImage = `url("${photoUrl(allPhotoIds[photoIndex])}")`;
+
+        container.appendChild(tile);
+        // Fade in on the next frame so the opacity transition actually plays.
+        requestAnimationFrame(() => requestAnimationFrame(() => tile.classList.add('visible')));
+      });
+    }
+
+    // Re-roll a specific photo slide's 3 photos from the queue. Called
+    // once up front for all 4 slides, and again each time a slide is
+    // about to come back around in the rotation.
+    function refreshPhotoSlide(slideId) {
+      if (allPhotoIds.length === 0) return;
+      renderPhotoSlide(slideId, drawPhotoIndices(Math.min(PHOTOS_TILE_COUNT, allPhotoIds.length)));
+    }
+
+    fetchPhotoIds()
+      .then(ids => {
+        allPhotoIds = ids;
+        PHOTO_SLIDE_IDS.forEach(refreshPhotoSlide);
+      })
+      .catch(err => {
+        console.warn('Photo collage fetch failed; slides will stay empty this load.', err);
+      });
 
     // =========================================================
     // AUTO-REFRESH: reloads the whole page on a schedule so any
