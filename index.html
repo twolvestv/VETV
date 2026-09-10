@@ -187,11 +187,11 @@
     </div>
 
     <div class="slide" id="slide-menu-next">
-      <img src="VE_MENU_9.png" alt="Next Month's Lunch Menu" onerror="this.dataset.broken='true';">
+      <img src="VE_MENU_10.png" alt="Next Month's Lunch Menu" onerror="this.dataset.broken='true';">
     </div>
 
     <div class="slide" id="slide-breakfast-next">
-      <img src="VE_BREAKFAST_9.png" alt="Next Month's Breakfast Menu" onerror="this.dataset.broken='true';">
+      <img src="VE_BREAKFAST_10.png" alt="Next Month's Breakfast Menu" onerror="this.dataset.broken='true';">
     </div>
 
     <div class="slide" id="slide-welcome">
@@ -246,14 +246,15 @@
     const PHOTO_SLIDE_IDS = ['slide-photos-1', 'slide-photos-2', 'slide-photos-3', 'slide-photos-4'];
 
     // ---- Monthly menu swap ----
-    // VE_MENU.png is the current (August) menu; VE_MENU9.png is next
-    // month's (September). VE_MENU9.png joins the rotation starting on
-    // its start date, then VE_MENU.png drops out on its retire date --
-    // both happen automatically (page auto-reloads hourly), no manual
-    // edit needed on either day. Just rename files and update these two
+    // VE_MENU.png/VE_BREAKFAST.png are the current (September) menu;
+    // VE_MENU_10.png/VE_BREAKFAST_10.png are next month's (October).
+    // The October files join the rotation starting on their start date,
+    // then the September files drop out on their retire date -- both
+    // happen automatically (page auto-reloads hourly), no manual edit
+    // needed on either day. Just add the new files and update these two
     // lines each month going forward.
-    const MENU_NEXT_START_DATE = new Date('2026-08-30T00:00:00');
-    const MENU_RETIRE_DATE = new Date('2026-09-01T00:00:00');
+    const MENU_NEXT_START_DATE = new Date('2026-09-28T00:00:00');
+    const MENU_RETIRE_DATE = new Date('2026-10-01T00:00:00');
     const now = new Date();
     const showOldMenu = now < MENU_RETIRE_DATE;
     const showNextMenu = now >= MENU_NEXT_START_DATE;
