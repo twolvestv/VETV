@@ -198,6 +198,12 @@
       <img src="Welcome_Enarson.png" alt="Enarson Elementary Logo" onerror="this.dataset.broken='true';">
     </div>
 
+    <div class="slide" id="slide-leaderboard">
+      <iframe
+        src="https://app.rcahousepoints.com/kiosk/1425?school_token=ns-sLwazN4jqJffsmbVN">
+      </iframe>
+    </div>
+
     <div class="slide" id="slide-announcements">
       <!--
         Secretary's published Google Slides deck (3 slides, 10 sec each = 30 sec loop).
@@ -241,6 +247,7 @@
     const CALENDAR_DURATION = 10000;
     const MENU_DURATION = 10000;
     const WELCOME_DURATION = 10000;
+    const LEADERBOARD_DURATION = 20000; // give its load-in animation time to finish before it's shown again
     const ANNOUNCEMENTS_DURATION = 29000; // her deck: 3 slides x 10 sec each
     const PHOTOS_DURATION = 12000; // each of the 4 photo slides shows its 3 photos for this long
     const PHOTO_SLIDE_IDS = ['slide-photos-1', 'slide-photos-2', 'slide-photos-3', 'slide-photos-4'];
@@ -267,6 +274,7 @@
       ...(showNextMenu ? [{ el: document.getElementById('slide-menu-next'), duration: MENU_DURATION }] : []),
       ...(showNextMenu ? [{ el: document.getElementById('slide-breakfast-next'), duration: MENU_DURATION }] : []),
       { el: document.getElementById('slide-welcome'), duration: WELCOME_DURATION },
+      { el: document.getElementById('slide-leaderboard'), duration: LEADERBOARD_DURATION },
       { el: document.getElementById('slide-announcements'), duration: ANNOUNCEMENTS_DURATION },
       { el: document.getElementById('slide-photos-1'), duration: PHOTOS_DURATION },
       { el: document.getElementById('slide-photos-2'), duration: PHOTOS_DURATION },
