@@ -274,6 +274,7 @@
       ...(showNextMenu ? [{ el: document.getElementById('slide-menu-next'), duration: MENU_DURATION }] : []),
       ...(showNextMenu ? [{ el: document.getElementById('slide-breakfast-next'), duration: MENU_DURATION }] : []),
       { el: document.getElementById('slide-welcome'), duration: WELCOME_DURATION },
+      { el: document.getElementById('slide-leaderboard'), duration: LEADERBOARD_DURATION },
       { el: document.getElementById('slide-announcements'), duration: ANNOUNCEMENTS_DURATION },
       { el: document.getElementById('slide-photos-1'), duration: PHOTOS_DURATION },
       { el: document.getElementById('slide-photos-2'), duration: PHOTOS_DURATION },
@@ -302,6 +303,7 @@
         frame.src = ANNOUNCEMENTS_BASE_SRC + "&cb=" + Date.now();
       }
     }
+
 
     function showSlide(index) {
       slides.forEach((s, i) => {
